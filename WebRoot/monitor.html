@@ -1,0 +1,135 @@
+<!DOCTYPE HTML>
+<html>
+	<head>
+		<title>整点查岗/动态轨迹</title>
+		<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+		<link rel="stylesheet" type="text/css"
+			href="http://130.10.7.207:8080/arcgis_js_v39_api/arcgis_js_api/library/3.9/jsapicompact/js/esri/css/esri.css">
+		<script type="text/javascript"
+			src="http://130.10.7.207:8080/arcgis_js_v39_api/arcgis_js_api/library/3.9/jsapicompact/"></script>
+		<script type="text/javascript" src="js/jquery-1.8.3.js"></script>
+		<link type="text/css" rel="stylesheet" href="css/demos.css">
+		<script type="text/javascript">
+    dojo.require("esri.config");
+	dojo.require("esri.map");
+	esriConfig.defaults.io.corsDetection=false;
+    var map;
+    var spatialReference;
+    var pointLayer=null;
+    var polylineLayer=null;
+    var pointArray=[];
+    pointArray.push("12971560.146692835,4841705.405986843");
+    pointArray.push("12972480.898534339,4841975.2815265935");
+    pointArray.push("12973281.000134543,4841597.455770941");
+    pointArray.push("12972626.94882644,4841178.35493274");
+    pointArray.push("12971760.172092887,4841292.655161341");
+    var zoom;
+    var pointGraphic;
+    //定义图片的大小
+    var imgSize;
+    function init(){
+    	map = new esri.Map("map", {logo: false});
+    	spatialReference=new esri.SpatialReference({wkid:102113});
+    	//先添加的图层在最下面
+        var baseMap = new esri.layers.ArcGISTiledMapServiceLayer("http://130.10.7.207:8399/rest/services/chaoyang_SDE_1211/MapServer");
+        map.addLayer(baseMap);
+        //添加线图层
+        polylineLayer=new esri.layers.GraphicsLayer({id:"polylineLayer"});
+    	map.addLayer(polylineLayer);
+    	//添加点图层
+        pointLayer=new esri.layers.GraphicsLayer({id:"pointLayer"});
+        map.addLayer(pointLayer);
+        dojo.connect(map, "onLoad",function(){
+			zoom=map.getZoom();
+			imgSize=10+5*zoom;
+        });
+        dojo.connect(map, "onClick",function(e){
+			console.log(e.mapPoint.x,e.mapPoint.y);
+        });
+        dojo.connect(map,"onZoomEnd",function(e){
+        	var points=pointLayer.graphics;
+        	if(points.length==0){
+              return;
+            }
+        	zoom=map.getZoom();
+        	imgSize=10+5*zoom;
+        	var points=pointLayer.graphics;
+        	if(points.length==0){
+              return;
+            }
+        	for ( var i = 0; i < points.length; i++) {
+        		points[i].symbol.setWidth(imgSize).setHeight(imgSize).setOffset(0,imgSize/2)
+			}
+        })
+    }
+    dojo.addOnLoad(init);
+    //显示点标记
+    function showPoint(){
+    	clearMap();
+        if(pointArray.length==0){
+          alert("没有点标记!");
+          return;
+        }
+        for(var i in pointArray){
+        	var point = new esri.geometry.Point(pointArray[i].split(",")[0],pointArray[i].split(",")[1],spatialReference)
+            var symbol = new esri.symbol.PictureMarkerSymbol("img/1.png",imgSize,imgSize);
+            symbol.setOffset(0, imgSize/2);
+            var graphic = new esri.Graphic(point,symbol);
+            pointLayer.add(graphic);
+        }
+		console.log(pointLayer.graphics);
+    }
+    //显示开始结束点标记
+    function showP_Start_End(){
+        if(pointArray.length==0){
+          alert("没有点标记!");
+          return;
+        }
+        for(var i in pointArray){
+        	var point = new esri.geometry.Point(pointArray[i].split(",")[0],pointArray[i].split(",")[1],spatialReference)
+        	var imgSrc;
+        	if(i==0){
+        		imgSrc="img/begin.png";
+            }else if(i==pointArray.length-1){
+            	imgSrc="img/end.png";
+            }else{
+            	imgSrc="img/1.png";
+            }
+            var symbol= new esri.symbol.PictureMarkerSymbol(imgSrc,imgSize,imgSize);
+            symbol.setOffset(0, imgSize/2);
+            var graphic = new esri.Graphic(point,symbol);
+            pointLayer.add(graphic);
+        }
+		console.log(pointLayer.graphics);
+    }
+    //显示点线标记
+    function showPolyline(){
+    	clearMap();
+    	showP_Start_End();
+		var polyline=new esri.geometry.Polyline(spatialReference);
+		var lineArray=[];
+		for(var i in pointArray){
+			lineArray.push([pointArray[i].split(",")[0],pointArray[i].split(",")[1]]);
+	    }
+		polyline.addPath(lineArray);
+		var symbol=new esri.symbol.SimpleLineSymbol(esri.symbol.SimpleLineSymbol.STYLE_SOLID,
+				   new esri.Color([255,0,0]), 3);
+	    var graphic=new esri.Graphic(polyline,symbol);
+		polylineLayer.add(graphic);
+		console.log(polylineLayer.graphics);
+    }
+    function clearMap(){
+    	pointLayer.clear();
+        polylineLayer.clear();
+    }
+    </script>
+	</head>
+	<body>
+		<div id="map"
+			style="width: 900px; height: 600px; border: 1px solid #000;"></div>
+		<input type="button" value="整点查岗" onclick="showPoint()" />
+		<input type="button" value="动态轨迹" onclick="showPolyline()" />
+		<br />
+		<br />
+	</body>
+</html>
